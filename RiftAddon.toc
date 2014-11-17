@@ -1,0 +1,16 @@
+Identifier = "Protipper"
+Name = "Protipper"
+Description = "Protipper helps you play your role by suggesting the next ability to use."
+Author = "Felandra@Zaviel"
+Version = "0.1.0"
+Email = "emil@nauerby.com"
+Environment = "1.6"
+
+RunOnStartup = {
+	"Protipper.lua",
+	"priorities/Rogue_Huntsman.lua"
+}
+
+SavedVariables = {
+	Protipper_enabled = 'character',
+}

@@ -25,16 +25,16 @@ Protipper.Priorities["Huntsman"] = {
 	},
 
 	{
-		"Shadow Fire",
+		"Splinter Shot",
 		function()
-			return (a.Cooldown("Shadow Fire") < cd) and (a.ComboPoints() < 5)
+			return a.RemainingTime("player.target", "Splinter Shot") < cd
 		end
 	},
 
 	{
-		"Splinter Shot",
+		"Shadow Fire",
 		function()
-			return a.RemainingTime("player.target", "Splinter Shot") < cd
+			return (a.Cooldown("Shadow Fire") < cd) and (a.ComboPoints() <= 3)
 		end
 	},
 

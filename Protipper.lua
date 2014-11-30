@@ -1,11 +1,13 @@
 Protipper = {	
 	Abilities = {},
+	ActiveSpec = nil,
 	Priorities = {},
 	Settings = {
 		Alpha = 0.5,
 		Height = 100,
 		Width = 100
 	},
+	RequiredAbilities = {},
 	UI = {
 		Texture = nil
 	}
@@ -40,7 +42,11 @@ local Some = function(items, predicate)
 end
 
 local Abi = function(ability)
-	return Inspect.Ability.New.Detail(Protipper.Abilities[ability])
+	local entry = Protipper.Abilities[ability]
+	if entry == nil then
+		return nil
+	end
+	return Inspect.Ability.New.Detail(entry)
 end
 
 ---------------
@@ -73,7 +79,10 @@ function Protipper.UpdateTexture()
 	if Protipper.Busy then return end
 
 	Protipper.Busy = true
-	Protipper.SetTexture(Abi(Protipper.Suggestion()).icon)
+	local suggestion = Abi(Protipper.Suggestion())
+	if not (suggestion == nil) then
+		Protipper.SetTexture(suggestion.icon)
+	end
 	Protipper.Busy = false
 end
 
@@ -84,16 +93,28 @@ end
 function Protipper.Init(addon)
 	if addon == "Protipper" then
 		-- Initialize the UI
+		Protipper.UpdateActiveSpec()
 		Protipper.Frame = CreateMainFrame()
 	end
 end
 
 function Protipper.PopulateAbilityList()
 	print("Populating ability list")
-	for index in pairs(Inspect.Ability.New.List()) do
+	Protipper.Abilities = {}
+	local abilities = Inspect.Ability.New.List()
+
+	if abilities == nil then
+		return
+	end
+
+	for index in pairs(abilities) do
 		ability = Inspect.Ability.New.Detail(index)
 		Protipper.Abilities[ability.name] = index
 	end
+end
+
+function Protipper.UpdateActiveSpec()
+	Protipper.ActiveSpec = Protipper.GetActiveSpec()
 end
 
 --------------------
@@ -101,13 +122,36 @@ end
 --------------------
 
 Protipper.Suggestion = function()
-	for index,ability in ipairs(Protipper.Priorities["Huntsman"]) do
+	local spec = Protipper.Priorities[Protipper.ActiveSpec]
+	if spec == nil then
+		spec = {}
+	end
+
+	for index, ability in ipairs(spec) do
 		local name = ability[1]
 		local valid = ability[2]
 		if valid() then
 			return name
 		end
 	end
+	return nil
+end
+
+Protipper.GetActiveSpec = function()
+	Protipper.PopulateAbilityList()
+	for spec, abilities in pairs(Protipper.RequiredAbilities) do
+		local allTrue = true
+		for _, name in pairs(abilities) do
+			if not Abi(name) then
+				allTrue = false
+			end
+		end
+
+		if allTrue then
+			return spec
+		end
+	end
+
 	return nil
 end
 
@@ -156,8 +200,8 @@ end
 
 table.insert(Event.Addon.Load.End, {Protipper.Init, "Protipper", "Initital Setup"})
 table.insert(Command.Slash.Register("pt"), {Protipper.API.HasBuff, "Protipper", "Slash Command"})
-table.insert(Event.Unit.Detail.Role, {Protipper.PopulateAbilityList, "Protipper", "Populate ability list"})
-table.insert(Event.Ability.New.Add, {Protipper.PopulateAbilityList, "Protipper", "Populate ability list"})
+table.insert(Event.Unit.Detail.Role, {Protipper.UpdateActiveSpec, "Protipper", "Populate ability list"})
+table.insert(Event.Ability.New.Add, {Protipper.UpdateActiveSpec, "Protipper", "Populate ability list"})
 
 table.insert(Event.Unit.Detail.Energy, {Protipper.UpdateTexture, "Protipper", "Update Texture"})
 table.insert(Event.Unit.Detail.Health, {Protipper.UpdateTexture, "Protipper", "Update Texture"})

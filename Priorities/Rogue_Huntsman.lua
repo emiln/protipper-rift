@@ -1,6 +1,10 @@
 local a = Protipper.API
 local cd = 0.75
 
+Protipper.RequiredAbilities["Huntsman"] = {
+	"Ace Shot"
+}
+
 Protipper.Priorities["Huntsman"] = {
 	{	
 		"Animalism",

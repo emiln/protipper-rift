@@ -13,5 +13,5 @@ RunOnStartup = {
 }
 
 SavedVariables = {
-	Protipper_enabled = 'character',
+	Protipper_Persistent = 'character',
 }

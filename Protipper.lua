@@ -3,14 +3,34 @@ Protipper = {
 	ActiveSpec = nil,
 	Priorities = {},
 	Settings = {
-		Alpha = 0.5,
-		Height = 100,
-		Width = 100
+		Alpha = 0.9,
+		Border = {
+			R = 0,
+			G = 0,
+			B = 0,
+			Width = 2
+		},
+		Font = {
+			Family = "",
+			Size = 11
+		},
+		Height = 64,
+		Width = 64,
+		X = 0,
+		Y = 0
 	},
+	State = {},
 	RequiredAbilities = {},
 	UI = {
-		Texture = nil
+		Text = nil,
+		Texture = nil,
+		Wrap = nil
 	}
+}
+
+Protipper_Persistent = {
+	X = 10,
+	Y = 10
 }
 
 ----------------------
@@ -55,24 +75,74 @@ end
 
 local function CreateMainFrame()
 	local s = Protipper.Settings
+	local pp = Protipper_Persistent
+	if pp == nil then
+		pp = {X = 10, Y = 10}
+	end
 
 	local context = UI.CreateContext("Protipper")
 	local wrap = UI.CreateFrame("Frame", "Protipper Wrapper", context)
 	local texture = UI.CreateFrame("Texture", "Protipper Ability", wrap)
+	local text = UI.CreateFrame("Text", "Protipper Text", wrap)
 	Protipper.UI.Texture = texture
+	Protipper.UI.Text = text
+	Protipper.UI.Wrap = wrap
 
 	texture:SetVisible(true)
-	texture:SetHeight(s.Height - 10)
-	texture:SetWidth(s.Width - 10)
+	texture:SetHeight(s.Height - 2 * s.Border.Width)
+	texture:SetWidth(s.Width - 2 * s.Border.Width)
+	texture:SetPoint("TOPLEFT", wrap, "TOPLEFT", s.Border.Width, s.Border.Width)
+	texture:SetAlpha(s.Alpha)
+
+	text:SetVisible(true)
+	text:SetBackgroundColor(s.Border.R, s.Border.G, s.Border.B, s.Alpha)
+	text:SetPoint("TOPCENTER", wrap, "BOTTOMCENTER", 0, s.Border.Width)
+	text:SetText("Loading...")
+	text:SetFontColor(1, 1, 1)
+	text:SetFontSize(s.Font.Size)
 
 	wrap:SetVisible(true)
 	wrap:SetHeight(s.Height)
 	wrap:SetWidth(s.Width)
-	wrap:SetBackgroundColor(0,0,0,s.Alpha)
+	wrap:SetBackgroundColor(s.Border.R, s.Border.G, s.Border.B, s.Alpha)
+	local x = 
+	wrap:SetPoint("TOPLEFT", UIParent, "TOPLEFT", pp.X, pp.Y)
+
+	function wrap.Event:LeftDown()
+		local mouse = Inspect.Mouse()
+		wrap:SetAlpha(s.Alpha * 0.7)
+		Protipper.State.MouseDown = true
+		Protipper.State.StartX = Protipper.UI.Wrap:GetLeft()
+		Protipper.State.StartY = Protipper.UI.Wrap:GetTop()
+		Protipper.State.MouseStartX = mouse.x
+		Protipper.State.MouseStartY = mouse.y
+	end
+
+	function wrap.Event:MouseMove()
+		if Protipper.State.MouseDown then
+			local mouse = Inspect.Mouse()
+			local x = mouse.x - Protipper.State.MouseStartX +
+				Protipper.State.StartX
+			local y = mouse.y - Protipper.State.MouseStartY +
+				Protipper.State.StartY
+			Protipper.UI.Wrap:SetPoint("TOPLEFT", UIParent, "TOPLEFT", x, y)
+			pp.X = x
+			pp.Y = y
+		end
+	end
+
+	function wrap.Event:LeftUp()
+		wrap:SetAlpha(s.Alpha)
+		Protipper.State.MouseDown = false
+	end
 end
 
 function Protipper.SetTexture(icon)
 	Protipper.UI.Texture:SetTexture("Rift", icon)
+end
+
+function Protipper.SetText(name)
+	Protipper.UI.Text:SetText(name)
 end
 
 function Protipper.UpdateTexture()
@@ -82,6 +152,7 @@ function Protipper.UpdateTexture()
 	local suggestion = Abi(Protipper.Suggestion())
 	if not (suggestion == nil) then
 		Protipper.SetTexture(suggestion.icon)
+		Protipper.SetText(suggestion.name)
 	end
 	Protipper.Busy = false
 end
@@ -95,6 +166,17 @@ function Protipper.Init(addon)
 		-- Initialize the UI
 		Protipper.UpdateActiveSpec()
 		Protipper.Frame = CreateMainFrame()
+
+		table.insert(Event.Unit.Detail.Role, {Protipper.UpdateActiveSpec, "Protipper", "Populate ability list"})
+		table.insert(Event.Ability.New.Add, {Protipper.UpdateActiveSpec, "Protipper", "Populate ability list"})
+
+		table.insert(Event.Unit.Detail.Energy, {Protipper.UpdateTexture, "Protipper", "Update Texture"})
+		table.insert(Event.Unit.Detail.Health, {Protipper.UpdateTexture, "Protipper", "Update Texture"})
+		table.insert(Event.Unit.Detail.Mana, {Protipper.UpdateTexture, "Protipper", "Update Texture"})
+		table.insert(Event.Unit.Detail.Power, {Protipper.UpdateTexture, "Protipper", "Update Texture"})
+		table.insert(Event.Unit.Detail.Vitality, {Protipper.UpdateTexture, "Protipper", "Update Texture"})
+		table.insert(Event.Ability.New.Usable.True, {Protipper.UpdateTexture, "Protipper", "Update Texture"})
+		table.insert(Event.Ability.New.Usable.False, {Protipper.UpdateTexture, "Protipper", "Update Texture"})
 	end
 end
 
@@ -198,15 +280,5 @@ end
 -- Register Events --
 ---------------------
 
-table.insert(Event.Addon.Load.End, {Protipper.Init, "Protipper", "Initital Setup"})
+table.insert(Event.Addon.SavedVariables.Load.End, {Protipper.Init, "Protipper", "Initital Setup"})
 table.insert(Command.Slash.Register("pt"), {Protipper.API.HasBuff, "Protipper", "Slash Command"})
-table.insert(Event.Unit.Detail.Role, {Protipper.UpdateActiveSpec, "Protipper", "Populate ability list"})
-table.insert(Event.Ability.New.Add, {Protipper.UpdateActiveSpec, "Protipper", "Populate ability list"})
-
-table.insert(Event.Unit.Detail.Energy, {Protipper.UpdateTexture, "Protipper", "Update Texture"})
-table.insert(Event.Unit.Detail.Health, {Protipper.UpdateTexture, "Protipper", "Update Texture"})
-table.insert(Event.Unit.Detail.Mana, {Protipper.UpdateTexture, "Protipper", "Update Texture"})
-table.insert(Event.Unit.Detail.Power, {Protipper.UpdateTexture, "Protipper", "Update Texture"})
-table.insert(Event.Unit.Detail.Vitality, {Protipper.UpdateTexture, "Protipper", "Update Texture"})
-table.insert(Event.Ability.New.Usable.True, {Protipper.UpdateTexture, "Protipper", "Update Texture"})
-table.insert(Event.Ability.New.Usable.False, {Protipper.UpdateTexture, "Protipper", "Update Texture"})
